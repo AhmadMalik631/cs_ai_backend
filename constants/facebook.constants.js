@@ -1,0 +1,18 @@
+module.exports.SCOPES = [
+  "public_profile",
+  "email",
+  "pages_show_list",
+  "pages_read_engagement",
+  "pages_manage_posts",
+  "pages_manage_metadata",
+  "pages_read_user_content",
+  "pages_manage_engagement",
+  "pages_messaging",
+  "business_management",
+  "instagram_basic",
+  "instagram_manage_messages",
+  "instagram_manage_comments",
+  "instagram_content_publish",
+  "pages_manage_ads",
+  "pages_manage_cta",
+].join(',');
