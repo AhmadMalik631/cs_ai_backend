@@ -16,6 +16,12 @@ const ticketSchema = new Schema({
       url: String,
     }
   ],
+  channel: {
+    type: String,
+    enum: ["email", "facebook", "instagram", "whatsapp", "webchat", "sms", "internal", "other"],
+    default: "email",
+    required: true
+  },
   tags: { type: [String], default: [] },
   onHold: {type :Date, default:null},
   channel:{type:String, default:""},

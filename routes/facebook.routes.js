@@ -1,17 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/facebook.Controller');
-
+const webhook=require("../webhooks/massenger.webhook");
 // OAuth Routes
-router.get('/facebook/login', controller.redirectToFacebook);
+router.get("/facebook/login/:userId",controller.redirectToFacebook)
+router.get('/facebook/validate/:userId', controller.Facebook_Validate_login);
 router.get('/facebook/callback', controller.handleFacebookCallback);
 
 // Page Data
-router.get('/facebook/pages', controller.fetchPages);
+router.post('/facebook/pages', controller.fetchPages);
 
 // Webhooks
-router.get('/facebook/webhook', controller.getWebhook);
-router.post('/facebook/webhook', controller.postWebhook);
+router.get('/facebook/webhook', webhook.getWebhook);
+router.post('/facebook/webhook', webhook.postWebhook);
 router.post('/facebook/subscribe', controller.subscribeWebhook);
-
+router.post("/facebook/reply/:userId",controller.replyMessenger);
 module.exports = router;
