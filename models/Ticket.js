@@ -18,13 +18,12 @@ const ticketSchema = new Schema({
   ],
   channel: {
     type: String,
-    enum: ["email", "facebook", "instagram", "whatsapp", "webchat", "sms", "internal", "other"],
+    enum: ["email", "messenger", "instagram", "whatsapp","messengerComment", "webchat", "sms", "internal", "other"],
     default: "email",
     required: true
   },
   tags: { type: [String], default: [] },
   onHold: {type :Date, default:null},
-  channel:{type:String, default:""},
   assignedTo: { type: Types.ObjectId, default: null },
   status: { type: String, default: "open" },
   source: {
@@ -54,7 +53,9 @@ const ticketSchema = new Schema({
   duplicateChecked: { type: Boolean, default: false }, // Whether duplicate check has been performed
   open: { type: String, default: "new" },
   lastMessage: { type: Date, default: Date.now }
-});
+},
+{timestamps:true}
+);
 
 ticketSchema.index({ inReplyTo: 1 });
 ticketSchema.index({ messageId: 1 });

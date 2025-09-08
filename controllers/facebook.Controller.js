@@ -20,6 +20,7 @@ exports.redirectToFacebook=(req, res) =>{
   authUrl.searchParams.set("state", userId);
   res.redirect(authUrl.toString());
 }
+const Ticket =require("../models/Ticket");
 
 // exports.handleFacebookCallback = async (req, res) => {
 //   try {
@@ -148,7 +149,7 @@ exports.replyMessenger = async (req, res) => {
       if (!to || !message || !inReplyTo) {
         throw new Error("Missing required fields: to, message, inReplyTo");
       }
-      const fbPage = await FacebookPage.findOne({ userId });
+      const fbPage = await FacebookPage.findOne({ userId:_id });
       if (!fbPage || !fbPage.pageAccessToken) {
         throw new Error("Page access token not found for user.");
       }
@@ -165,7 +166,6 @@ exports.replyMessenger = async (req, res) => {
         { $set: { inReplyTo } },
         { new: true }
       );
-    
       // return {
       //   fbResponse: fbResponse.data,
       //   updatedTicket,

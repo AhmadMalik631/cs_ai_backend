@@ -53,16 +53,17 @@ const fetchTickets = async (req, res, next) => {
       
       tickets = await Ticket.find({
         $and: [threadRootFilter, mongoQuery]
-      }).sort(sortOption).skip(skip).limit(limit);
+      })
+      // .sort(sortOption).skip(skip).limit(limit);
 
     } else {
       // Get total count for pagination
       totalCount = await Ticket.countDocuments(threadRootFilter);
       
       tickets = await Ticket.find(threadRootFilter)
-        .sort(sortOption)
-        .skip(skip)
-        .limit(limit);
+        // .sort(sortOption)
+        // .skip(skip)
+        // .limit(limit);
     }
     
     // Enhance each ticket with calculated SLA status and check for duplicates

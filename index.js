@@ -18,7 +18,10 @@ const app = express();
 
 app.use(
   cors({
+    // origin: ["http://localhost:5174"],
+    // credentials: true,
     origin: '*',
+
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
   })
@@ -36,7 +39,7 @@ app.use("/media", express.static(path.join(__dirname, "uploads")));
 // Routes
 app.use("/api/tags", tagRoute)
 app.use("/api/users", userRoute);
-app.use("/api/views",viewsRoutes)
+app.use("/api/views", viewsRoutes)
 app.use("/api/emails", emailRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/internal-notes", internalNotesRoutes);
@@ -76,7 +79,7 @@ mongoose.connect(process.env.MONGO_URI, mongooseOptions)
   })
   .catch((err) => {
     console.error('❌ Initial MongoDB connection error:', err.message);
-    process.exit(1); 
+    process.exit(1);
   });
 
 mongoose.connection.on('connected', () => {
