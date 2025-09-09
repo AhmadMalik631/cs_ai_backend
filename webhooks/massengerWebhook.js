@@ -76,6 +76,7 @@ exports.postWebhook = async (req, res) => {
     for (const entry of body.entry) {
       // ✅ Handle Messenger messages
       if (entry.messaging) {
+        console.log(entry.messaging)
         for (const event of entry.messaging) {
           const senderId = event.sender?.id;
           const recipientId = event.recipient?.id;
@@ -88,7 +89,7 @@ exports.postWebhook = async (req, res) => {
 
           const messageText = message?.text || '';
           const messageId = message?.mid || null;
-
+          
           if (!messageId) continue;
 
           // Check duplicate

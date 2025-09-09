@@ -142,50 +142,65 @@ exports.subscribeWebhook = async (req, res) => {
 
 
 exports.replyMessenger = async (req, res) => {
-  // try {
+  try {
     const { userId } = req.params;
     const { to, message, inReplyTo } = req.body;
     const _id = new mongoose.Types.ObjectId(userId);
-      if (!to || !message || !inReplyTo) {
-        throw new Error("Missing required fields: to, message, inReplyTo");
-      }
-      const fbPage = await FacebookPage.findOne({ userId:_id });
-      
-      if (!fbPage || !fbPage.pageAccessToken) {
-        throw new Error("Page access token not found for user.");
-      }
-      const pageAccessToken = fbPage.pageAccessToken;
-      const payload = {
-        recipient: { id: to },
-        message: { text: message },
-        messaging_type: "RESPONSE"
-      };
-      const fbResponse = await axios.post(`https://graph.facebook.com/v23.0/me/messages?access_token=${pageAccessToken}`, payload);
-     
-      const updatedTicket = await Ticket.findOneAndUpdate(
-        { messageId: inReplyTo },
-        { $set: { inReplyTo } },
-        { new: true }
-      );
-      // return {
-      //   fbResponse: fbResponse.data,
-      //   updatedTicket,
-      // };
+
+    if (!to || !message || !inReplyTo) {
+      throw new Error("Missing required fields: to, message, inReplyTo");
+    }
+
+    const fbPage = await FacebookPage.findOne({ userId: _id });
+    if (!fbPage || !fbPage.pageAccessToken) {
+      throw new Error("Page access token not found for user.");
+    }
+
+    const pageAccessToken = fbPage.pageAccessToken;
+
+    console.log("Sending message:", { to, message, pageAccessToken });
+
+    const payload = {
+      recipient: { id: to },
+      message: { text: message },
+      messaging_type: "RESPONSE"
+    };
+
+    const fbResponse = await axios.post(
+      `https://graph.facebook.com/v23.0/me/messages?access_token=${pageAccessToken}`,
+      payload
+    );
+
+    const replyMessageId = fbResponse.data.message_id || null;
+
+    const updatedTicket = await Ticket.findOneAndUpdate(
+      { messageId: inReplyTo },
+      {
+        $set: {
+          inReplyTo,
+          replyMessageId,
+          replyText: message,
+        }
+      },
+      { new: true }
+    );
+
     res.status(200).json({
       message: "Reply sent successfully.",
       fbResponse: fbResponse.data,
-      updatedTicket:updatedTicket,
+      updatedTicket,
     });
-  // } catch (error) {
-  //   console.error("Messenger reply error:", error.message);
-  //   res.status(500).json({ error: error.message });
-  // }
+
+  } catch (error) {
+    console.error('FB Messenger send error:', JSON.stringify(error.response?.data, null, 2) || error.message);
+    return res.status(500).json({ error: error.response?.data || error.message });
+  }
 };
 
 
 exports.replyFacebookComment = async (req, res) => {
-
-  try {
+  console.log("body:",req.body);
+  // try {
     const { userId } = req.params;
     console.log(userId)
     const { message, inReplyTo } = req.body;
@@ -236,10 +251,10 @@ exports.replyFacebookComment = async (req, res) => {
       updatedTicket,
     });
 
-  } catch (error) {
-    console.error("❌ Comment reply error:", error.message);
-    res.status(500).json({ error: error.message });
-  }
+  // } catch (error) {
+  //   console.error("❌ Comment reply error:", error.message);
+  //   res.status(500).json({ error: error.message });
+  // }
 };
 
 
