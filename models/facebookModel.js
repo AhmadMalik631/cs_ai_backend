@@ -7,6 +7,7 @@ const facebookPageSchema = new mongoose.Schema({
   userAccessToken: { type: String },
   longLivedUserAccessToken: { type: String },
   pageAccessToken: { type: String },
+  instagramBusinessAccountId: { type: String }, 
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -18,6 +19,5 @@ const facebookPageSchema = new mongoose.Schema({
     default: 'not_subscribed'
   }
 }, { timestamps: true });
-
 
 module.exports = mongoose.model('FacebookPage', facebookPageSchema);

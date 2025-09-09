@@ -1,11 +1,11 @@
-const FacebookPage = require('../models/facebook.model');
+const FacebookPage = require('../models/facebookModel');
 const {
   exchangeAccessToken,
   exchangeForLongLivedToken,
   getUserPages,
   subscribePage,
-  messengerService
-} = require('../services/facebook.service');
+  sendCommentReply
+} = require('../services/facebookService');
 const config = require('../config/config');
 const SCOPES = require("../constants/facebook.constants");
 const mongoose = require('mongoose');
@@ -59,6 +59,7 @@ const Ticket =require("../models/Ticket");
 // };
 
 // const { checkAndSubscribePage } = require('../utils/facebook.helpers'); 
+
 exports.handleFacebookCallback = async (req, res) => {
   // try {
     const shortToken = await exchangeAccessToken(req.query.code);
@@ -69,7 +70,6 @@ exports.handleFacebookCallback = async (req, res) => {
 
     for (const page of pages.data) {
       const { id: pageId, name, access_token: pageAccessToken } = page;
-
       // Save or update page
       const updatedPage = await FacebookPage.findOneAndUpdate(
         { fbPageId: pageId, userId: _id },
@@ -142,7 +142,7 @@ exports.subscribeWebhook = async (req, res) => {
 
 
 exports.replyMessenger = async (req, res) => {
-  try {
+  // try {
     const { userId } = req.params;
     const { to, message, inReplyTo } = req.body;
     const _id = new mongoose.Types.ObjectId(userId);
@@ -150,6 +150,7 @@ exports.replyMessenger = async (req, res) => {
         throw new Error("Missing required fields: to, message, inReplyTo");
       }
       const fbPage = await FacebookPage.findOne({ userId:_id });
+      
       if (!fbPage || !fbPage.pageAccessToken) {
         throw new Error("Page access token not found for user.");
       }
@@ -175,37 +176,72 @@ exports.replyMessenger = async (req, res) => {
       fbResponse: fbResponse.data,
       updatedTicket:updatedTicket,
     });
+  // } catch (error) {
+  //   console.error("Messenger reply error:", error.message);
+  //   res.status(500).json({ error: error.message });
+  // }
+};
+
+
+exports.replyFacebookComment = async (req, res) => {
+
+  try {
+    const { userId } = req.params;
+    console.log(userId)
+    const { message, inReplyTo } = req.body;
+
+    if (!message || !inReplyTo) {
+      throw new Error("Missing required fields: message, inReplyTo");
+    }
+
+    const _id = new mongoose.Types.ObjectId(userId);
+
+    // ✅ Step 1: Get Facebook Page Access Token
+    const fbPage = await FacebookPage.findOne({ userId: _id });
+    if (!fbPage || !fbPage.pageAccessToken) {
+      throw new Error("Page access token not found for user.");
+    }
+
+    const pageAccessToken = fbPage.pageAccessToken;
+
+    // ✅ Step 2: Get commentId from Ticket
+    const originalTicket = await Ticket.findOne({ messageId: inReplyTo });
+    console.log(originalTicket);
+    if (!originalTicket || !originalTicket.messageId) {
+      throw new Error("Original comment not found or commentId missing in Ticket.");
+    }
+
+    const commentId = originalTicket.messageId;
+    console.log("commentid: ",commentId)
+    const graphUrl = `https://graph.facebook.com/v23.0/${commentId}/comments`;
+    const payload = { message };
+
+    const fbResponse = await axios.post(graphUrl, payload, {
+      params: {
+        access_token: pageAccessToken,
+      },
+    });
+
+    // ✅ Step 4: Update Ticket
+    const updatedTicket = await Ticket.findOneAndUpdate(
+      { messageId: inReplyTo },
+      { $set: { inReplyTo } },
+      { new: true }
+    );
+
+    // ✅ Step 5: Send response
+    res.status(200).json({
+      message: "Comment replied successfully.",
+      fbResponse: fbResponse.data,
+      updatedTicket,
+    });
+
   } catch (error) {
-    console.error("Messenger reply error:", error.message);
+    console.error("❌ Comment reply error:", error.message);
     res.status(500).json({ error: error.message });
   }
 };
 
-
-
-
-
-
-
-const replyToComment = async (commentId, message, pageAccessToken) => {
-  try {
-    const response = await axios.post(
-      `https://graph.facebook.com/v20.0/${commentId}/comments`,
-      {
-        message: message
-      },
-      {
-        params: {
-          access_token: pageAccessToken
-        }
-      }
-    );
-
-    console.log("✅ Replied to comment:", response.data);
-  } catch (err) {
-    console.error("Failed to reply to comment:", err.response?.data || err.message);
-  }
-};
 
 
 

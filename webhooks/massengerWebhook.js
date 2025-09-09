@@ -35,7 +35,7 @@ exports.getWebhook = (req, res) => {
 
 const axios = require('axios');
 const Ticket = require('../models/Ticket');
-const FacebookPage = require("../models/facebook.model");
+const FacebookPage = require("../models/facebookModel");
 
 async function getUserProfile(psid, accessToken) {
   try {

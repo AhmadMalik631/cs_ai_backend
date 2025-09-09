@@ -12,7 +12,7 @@ const viewsRoutes = require("./routes/viewRoutes");
 const userRoute = require("./routes/userRoute");
 const internalNotesRoutes = require("./routes/internalNotesRoutes");
 const path = require("path");
-const facebookRoutes = require('./routes/facebook.routes');
+const facebookRoutes = require('./routes/facebookRoutes');
 
 const app = express();
 
@@ -21,7 +21,6 @@ app.use(
     // origin: ["http://localhost:5174"],
     // credentials: true,
     origin: '*',
-
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
   })

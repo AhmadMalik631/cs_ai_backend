@@ -1,6 +1,6 @@
 const axios = require('axios');
 const config = require('../config/config');
-const FacebookPage = require("../models/facebook.model");
+const FacebookPage = require("../models/facebookModel");
 const Ticket = require("../models/Ticket");
 exports.exchangeAccessToken = async (code) => {
   const response = await axios.get('https://graph.facebook.com/v23.0/oauth/access_token', {
@@ -70,6 +70,51 @@ exports.sendMessengerReply = async ({ userId, to, message, inReplyTo }) => {
   };
 
   const fbResponse = await axios.post(graphUrl, payload);
+
+  const updatedTicket = await Ticket.findOneAndUpdate(
+    { messageId: inReplyTo },
+    { $set: { inReplyTo } },
+    { new: true }
+  );
+
+  return {
+    fbResponse: fbResponse.data,
+    updatedTicket,
+  };
+};
+
+
+// comment reply
+
+exports.sendCommentReply = async ({ userId, message, inReplyTo }) => {
+  if (!message || !inReplyTo) {
+    throw new Error("Missing required fields: message, inReplyTo");
+  }
+
+  const _id = new mongoose.Types.ObjectId(userId);
+
+  // ✅ Get Facebook Page Access Token
+  const fbPage = await FacebookPage.findOne({ userId: _id });
+  if (!fbPage || !fbPage.pageAccessToken) {
+    throw new Error("Page access token not found for user.");
+  }
+
+  const pageAccessToken = fbPage.pageAccessToken;
+  const originalTicket = await Ticket.findOne({ messageId: inReplyTo });
+  if (!originalTicket || !originalTicket.commentId) {
+    throw new Error("Original comment not found or commentId missing in Ticket.");
+  }
+
+  const commentId = originalTicket.commentId;
+
+  const graphUrl = `https://graph.facebook.com/v23.0/${commentId}/comments`;
+  const payload = { message };
+
+  const fbResponse = await axios.post(graphUrl, payload, {
+    params: {
+      access_token: pageAccessToken,
+    },
+  });
 
   const updatedTicket = await Ticket.findOneAndUpdate(
     { messageId: inReplyTo },
