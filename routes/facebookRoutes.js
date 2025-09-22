@@ -16,5 +16,8 @@ router.post('/facebook/webhook', webhook.postWebhook);
 router.post('/facebook/subscribe', controller.subscribeWebhook);
 router.post("/facebook/reply/:userId",controller.replyMessenger);
 router.post("/facebook/comment/reply/:userId",controller.replyFacebookComment);
+router.post("/facebook/hideComment",controller.Hide_Comments)
+router.get("/facebook/checkCommentStatus",controller.Check_Comment_Status);
+router.post("/facebook/deleteComment",controller.Delete_Comment);
 
 module.exports = router;

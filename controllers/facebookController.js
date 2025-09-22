@@ -9,9 +9,9 @@ const {
 const config = require('../config/config');
 const SCOPES = require("../constants/facebook.constants");
 const mongoose = require('mongoose');
-const axios =require("axios");
-exports.redirectToFacebook=(req, res) =>{
-  const {userId}=req.params;
+const axios = require("axios");
+exports.redirectToFacebook = (req, res) => {
+  const { userId } = req.params;
   const authUrl = new URL("https://www.facebook.com/v20.0/dialog/oauth");
   authUrl.searchParams.set("client_id", config.FACEBOOK_APP_ID);
   authUrl.searchParams.set("redirect_uri", config.FACEBOOK_REDIRECT_URI);
@@ -20,7 +20,7 @@ exports.redirectToFacebook=(req, res) =>{
   authUrl.searchParams.set("state", userId);
   res.redirect(authUrl.toString());
 }
-const Ticket =require("../models/Ticket");
+const Ticket = require("../models/Ticket");
 
 // exports.handleFacebookCallback = async (req, res) => {
 //   try {
@@ -62,47 +62,47 @@ const Ticket =require("../models/Ticket");
 
 exports.handleFacebookCallback = async (req, res) => {
   // try {
-    const shortToken = await exchangeAccessToken(req.query.code);
-    const longToken = await exchangeForLongLivedToken(shortToken);
-    const pages = await getUserPages(longToken);
-    const userId = req.query.state;
-    const _id = new mongoose.Types.ObjectId(userId);
+  const shortToken = await exchangeAccessToken(req.query.code);
+  const longToken = await exchangeForLongLivedToken(shortToken);
+  const pages = await getUserPages(longToken);
+  const userId = req.query.state;
+  const _id = new mongoose.Types.ObjectId(userId);
 
-    for (const page of pages.data) {
-      const { id: pageId, name, access_token: pageAccessToken } = page;
-      // Save or update page
-      const updatedPage = await FacebookPage.findOneAndUpdate(
+  for (const page of pages.data) {
+    const { id: pageId, name, access_token: pageAccessToken } = page;
+    // Save or update page
+    const updatedPage = await FacebookPage.findOneAndUpdate(
+      { fbPageId: pageId, userId: _id },
+      {
+        fbUserId: page.id,
+        fbPageId: pageId,
+        pageName: name,
+        userAccessToken: shortToken,
+        longLivedUserAccessToken: longToken,
+        pageAccessToken,
+        userId: _id,
+      },
+      { upsert: true, new: true }
+    );
+
+    // Subscribe and update subscription status
+    try {
+      await subscribePage(pageId, pageAccessToken);
+
+      await FacebookPage.updateOne(
         { fbPageId: pageId, userId: _id },
-        {
-          fbUserId: page.id,
-          fbPageId: pageId,
-          pageName: name,
-          userAccessToken: shortToken,
-          longLivedUserAccessToken: longToken,
-          pageAccessToken,
-          userId: _id,
-        },
-        { upsert: true, new: true }
+        { subscriptionStatus: 'subscribed' }
       );
-
-      // Subscribe and update subscription status
-      try {
-        await subscribePage(pageId, pageAccessToken);
-
-        await FacebookPage.updateOne(
-          { fbPageId: pageId, userId: _id },
-          { subscriptionStatus: 'subscribed' }
-        );
-      } catch (subscriptionError) {
-        console.error(`Failed to subscribe page ${pageId}:`, subscriptionError.message);
-        await FacebookPage.updateOne(
-          { fbPageId: pageId, userId: _id },
-          { subscriptionStatus: 'not_subscribed' }
-        );
-      }
+    } catch (subscriptionError) {
+      console.error(`Failed to subscribe page ${pageId}:`, subscriptionError.message);
+      await FacebookPage.updateOne(
+        { fbPageId: pageId, userId: _id },
+        { subscriptionStatus: 'not_subscribed' }
+      );
     }
+  }
 
-    res.json({ message: 'Pages saved & subscription handled.', pages: pages.data });
+  res.json({ message: 'Pages saved & subscription handled.', pages: pages.data });
 
   // } catch (err) {
   //   console.error('Callback Error:', err.response?.data || err.message || err);
@@ -122,7 +122,7 @@ exports.fetchPages = async (req, res) => {
 
 exports.subscribeWebhook = async (req, res) => {
   try {
-    const pageId = req.query.pageId;;
+    const pageId = req.query.pageId;
     console.log("page id is :", pageId);
     const pageData = await FacebookPage.findOne({ fbPageId: pageId });
     if (!pageData) {
@@ -137,16 +137,12 @@ exports.subscribeWebhook = async (req, res) => {
   }
 };
 
-
-// POST /api/messenger/reply/:userId
-
-
+// Reply to the messages 
 exports.replyMessenger = async (req, res) => {
   try {
     const { userId } = req.params;
     const { to, message, inReplyTo } = req.body;
     const _id = new mongoose.Types.ObjectId(userId);
-
     if (!to || !message || !inReplyTo) {
       throw new Error("Missing required fields: to, message, inReplyTo");
     }
@@ -197,59 +193,60 @@ exports.replyMessenger = async (req, res) => {
   }
 };
 
+// Reply to the facebookComment
 
 exports.replyFacebookComment = async (req, res) => {
-  console.log("body:",req.body);
+  console.log("body:", req.body);
   // try {
-    const { userId } = req.params;
-    console.log(userId)
-    const { message, inReplyTo } = req.body;
+  const { userId } = req.params;
+  console.log(userId)
+  const { message, inReplyTo } = req.body;
 
-    if (!message || !inReplyTo) {
-      throw new Error("Missing required fields: message, inReplyTo");
-    }
+  if (!message || !inReplyTo) {
+    throw new Error("Missing required fields: message, inReplyTo");
+  }
 
-    const _id = new mongoose.Types.ObjectId(userId);
+  const _id = new mongoose.Types.ObjectId(userId);
 
-    // ✅ Step 1: Get Facebook Page Access Token
-    const fbPage = await FacebookPage.findOne({ userId: _id });
-    if (!fbPage || !fbPage.pageAccessToken) {
-      throw new Error("Page access token not found for user.");
-    }
+  // ✅ Step 1: Get Facebook Page Access Token
+  const fbPage = await FacebookPage.findOne({ userId: _id });
+  if (!fbPage || !fbPage.pageAccessToken) {
+    throw new Error("Page access token not found for user.");
+  }
 
-    const pageAccessToken = fbPage.pageAccessToken;
+  const pageAccessToken = fbPage.pageAccessToken;
 
-    // ✅ Step 2: Get commentId from Ticket
-    const originalTicket = await Ticket.findOne({ messageId: inReplyTo });
-    console.log(originalTicket);
-    if (!originalTicket || !originalTicket.messageId) {
-      throw new Error("Original comment not found or commentId missing in Ticket.");
-    }
+  // ✅ Step 2: Get commentId from Ticket
+  const originalTicket = await Ticket.findOne({ messageId: inReplyTo });
+  console.log(originalTicket);
+  if (!originalTicket || !originalTicket.messageId) {
+    throw new Error("Original comment not found or commentId missing in Ticket.");
+  }
 
-    const commentId = originalTicket.messageId;
-    console.log("commentid: ",commentId)
-    const graphUrl = `https://graph.facebook.com/v23.0/${commentId}/comments`;
-    const payload = { message };
+  const commentId = originalTicket.messageId;
+  console.log("commentid: ", commentId)
+  const graphUrl = `https://graph.facebook.com/v23.0/${commentId}/comments`;
+  const payload = { message };
 
-    const fbResponse = await axios.post(graphUrl, payload, {
-      params: {
-        access_token: pageAccessToken,
-      },
-    });
+  const fbResponse = await axios.post(graphUrl, payload, {
+    params: {
+      access_token: pageAccessToken,
+    },
+  });
 
-    // ✅ Step 4: Update Ticket
-    const updatedTicket = await Ticket.findOneAndUpdate(
-      { messageId: inReplyTo },
-      { $set: { inReplyTo } },
-      { new: true }
-    );
+  // ✅ Step 4: Update Ticket
+  const updatedTicket = await Ticket.findOneAndUpdate(
+    { messageId: inReplyTo },
+    { $set: { inReplyTo } },
+    { new: true }
+  );
 
-    // ✅ Step 5: Send response
-    res.status(200).json({
-      message: "Comment replied successfully.",
-      fbResponse: fbResponse.data,
-      updatedTicket,
-    });
+  // ✅ Step 5: Send response
+  res.status(200).json({
+    message: "Comment replied successfully.",
+    fbResponse: fbResponse.data,
+    updatedTicket,
+  });
 
   // } catch (error) {
   //   console.error("❌ Comment reply error:", error.message);
@@ -265,18 +262,113 @@ exports.replyFacebookComment = async (req, res) => {
 
 exports.Facebook_Validate_login = async (req, res) => {
   // try {
-    const { userId } = req.params;
-    console.log("data",userId)
-    const _id = new mongoose.Types.ObjectId(userId);
-    const integration = await FacebookPage.findOne({ userId: _id });
+  const { userId } = req.params;
+  console.log("data", userId)
+  const _id = new mongoose.Types.ObjectId(userId);
+  const integration = await FacebookPage.findOne({ userId: _id });
 
-    if (!integration) {
-      return res.json({ data: null });
-    }
-    return res.status(200).json({ data: integration });
+  if (!integration) {
+    return res.json({ data: null });
+  }
+  return res.status(200).json({ data: integration });
 
   // } catch (err) {
   //   console.error("Facebook_Validate_login error:", err);
   //   return res.status(500).json({ error: "Something went wrong" });
   // }
 };
+
+
+// Hide and Unhide the comment
+
+exports.Hide_Comments = async (req, res) => {
+  try {
+    const { comment_id, hide } = req.body;
+    const fb_data = await FacebookPage.findOne();
+    console.log(fb_data.pageAccessToken);
+    const response = await axios.post(
+      `https://graph.facebook.com/v21.0/${comment_id}`,
+      null,
+      {
+        params: {
+          is_hidden:string(hide),
+          access_token: fb_data.pageAccessToken,
+        },
+      }
+    );
+    console.log(response.data);
+    res.json({
+      success: true,
+      data: response.data,
+    });
+  } catch (error) {
+    console.error(error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message,
+    });
+  }
+};
+
+// Check Comment Status
+exports.Check_Comment_Status = async (req, res) => {
+  try {
+    const { comment_id } = req.query;
+    console.log(comment_id);
+        console.log(fb_data.pageAccessToken);
+      const fb_data = await FacebookPage.findOne();
+    const response = await axios.get(
+      `https://graph.facebook.com/v23.0/${comment_id}`,
+      {
+        params: {
+          fields: "is_hidden",
+          access_token: fb_data.pageAccessToken,
+        },
+      }
+    );
+
+    res.json({
+      success: true,
+      is_hidden: response.data.is_hidden,
+    });
+  } catch (error) {
+    console.error(error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message,
+    });
+  }
+};
+
+
+// deleting the comment
+
+exports.Delete_Comment = async (req, res) => {
+  try {
+    const { comment_id } = req.body;
+    const fb_data = await FacebookPage.findOne();
+    const response = await axios.delete(
+      `https://graph.facebook.com/v23.0/${comment_id}`,
+      {
+        params: {
+          access_token: fb_data.pageAccessToken,
+        },
+      }
+    );
+    console.log(response);
+    res.json({
+      success: true,
+      data: response.data,
+    });
+  } catch (error) {
+    console.error(error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message,
+    });
+  }
+};
+
+
+// Reaction to the comment
+

@@ -13,12 +13,13 @@ const userRoute = require("./routes/userRoute");
 const internalNotesRoutes = require("./routes/internalNotesRoutes");
 const path = require("path");
 const facebookRoutes = require('./routes/facebookRoutes');
-
+// const instagramRoutes = require("./routes/instagramRoutes.js");
+const whatsappRoutes=require("./routes/whatsappRoute");
 const app = express();
 
 app.use(
   cors({
-    // origin: ["http://localhost:5174"],
+    // origin: ["http://localhost:5173","http://localhost:5174"],
     // credentials: true,
     origin: '*',
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -43,6 +44,8 @@ app.use("/api/emails", emailRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/internal-notes", internalNotesRoutes);
 app.use('/api', facebookRoutes);
+app.use('/api', whatsappRoutes);
+// app.use('/api', instagramRoutes);
 //Routes
 app.get("/", (req, res) => {
   res.send("Home Page!");

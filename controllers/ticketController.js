@@ -61,9 +61,9 @@ const fetchTickets = async (req, res, next) => {
       totalCount = await Ticket.countDocuments(threadRootFilter);
       
       tickets = await Ticket.find(threadRootFilter)
-        // .sort(sortOption)
-        // .skip(skip)
-        // .limit(limit);
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limit);
     }
     
     // Enhance each ticket with calculated SLA status and check for duplicates

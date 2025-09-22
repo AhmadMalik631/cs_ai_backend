@@ -17,6 +17,12 @@ const facebookPageSchema = new mongoose.Schema({
     type: String,
     enum: ['subscribed', 'not_subscribed'],
     default: 'not_subscribed'
+  },
+  instagram: {
+    businessId: String,
+    pageId: String,
+    accessToken: String,
+    tokenExpiry: Date
   }
 }, { timestamps: true });
 

@@ -15,4 +15,6 @@ module.exports.SCOPES = [
   "instagram_content_publish",
   "pages_manage_ads",
   "pages_manage_cta",
+  "whatsapp_business_management",
+  "whatsapp_business_messaging",
 ].join(',');
